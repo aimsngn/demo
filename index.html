@@ -3,61 +3,59 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>666666667777777777777</title>
+<title>6 or 7 Detector</title>
 <style>
   :root { --page-bg:#ffffff; }
   *{box-sizing:border-box}
-  html, body { height:100%; }
-  body{
-    margin:0; background:var(--page-bg);
+  html, body { height:100%; margin:0; background:var(--page-bg);
     display:grid; place-items:center;
     font-family:system-ui,-apple-system,Segoe UI,Roboto;
   }
   #centerImg{
-    max-width:80vw; max-height:80vh;
-    display:block; border:none; border-radius:0; box-shadow:none;
+    max-width:90vw; max-height:90vh;
+    display:block; border:none;
   }
+  /* Smaller camera preview */
   #video{
-    position:fixed; top:12px; right:12px;
-    width:260px; height:auto; border:none; border-radius:8px;
+    position:fixed; top:16px; right:16px;
+    width:120px; height:90px;           /* much smaller now */
+    border:none; border-radius:8px;
     background:#000; object-fit:cover;
+    box-shadow:0 0 8px rgba(0,0,0,0.25);
   }
   #startBtn{
-    position:fixed; top:12px; left:12px;
-    padding:.6rem 1rem;
-    border:none; border-radius:8px;
-    background:#001689; color:#fff;
-    font-weight:600; cursor:pointer;
+    position:fixed; top:16px; left:16px;
+    padding:.6rem 1rem; border:none; border-radius:8px;
+    background:#001689; color:#fff; font-weight:600; cursor:pointer;
   }
 </style>
 </head>
 <body>
   <img id="centerImg" alt="6–7" />
-  <video id="video" playsinline></video>
+  <video id="video" playsinline muted autoplay></video>
   <button id="startBtn">Start</button>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
-
-    const IMG_6 = "data:image/svg+xml;base64," + btoa(`
-      <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>
-        <rect width='100%' height='100%' fill='#fff'/>
-        <text x='50%' y='56%' font-size='300' font-weight='800'
-              text-anchor='middle' fill='#F4893D'
-              style='font-family:Arial, Helvetica, sans-serif'>6</text>
-      </svg>
-    `);
-    
-    const IMG_7 = "data:image/svg+xml;base64," + btoa(`
-      <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>
-        <rect width='100%' height='100%' fill='#fff'/>
-        <text x='50%' y='56%' font-size='300' font-weight='800'
-              text-anchor='middle' fill='#001689'
-              style='font-family:Arial, Helvetica, sans-serif'>7</text>
-      </svg>
-    `);
+      const IMG_6 = "data:image/svg+xml;base64," + btoa(`
+        <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>
+          <rect width='100%' height='100%' fill='#fff'/>
+          <text x='50%' y='56%' font-size='300' font-weight='800'
+                text-anchor='middle' fill='red'
+                style='font-family:Arial, Helvetica, sans-serif'>6</text>
+        </svg>
+      `);
+      
+      const IMG_7 = "data:image/svg+xml;base64," + btoa(`
+        <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>
+          <rect width='100%' height='100%' fill='#fff'/>
+          <text x='50%' y='56%' font-size='300' font-weight='800'
+                text-anchor='middle' fill='red'
+                style='font-family:Arial, Helvetica, sans-serif'>7</text>
+        </svg>
+      `);
 
 
     const IMG_Q = "data:image/svg+xml;base64," + btoa(`
@@ -72,19 +70,29 @@
     const startBtn = document.getElementById('startBtn');
     centerImg.src = IMG_Q;
 
+    video.muted = true;
+    video.playsInline = true;
+
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width:{ideal:1280}, height:{ideal:720}, facingMode:"user" },
-          audio: false
+          video: { facingMode: "user" }, audio: false
         });
         video.srcObject = stream;
         await video.play();
         startBtn.style.display = 'none';
         return true;
-      } catch (err) {
-        alert("Camera error: " + err.message);
-        return false;
+      } catch (e1) {
+        try {
+          const stream2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          video.srcObject = stream2;
+          await video.play();
+          startBtn.style.display = 'none';
+          return true;
+        } catch (e2) {
+          alert('Camera error: ' + (e2?.message || e2));
+          return false;
+        }
       }
     }
 
@@ -128,4 +136,3 @@
   </script>
 </body>
 </html>
-
