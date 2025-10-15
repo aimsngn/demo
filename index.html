@@ -5,24 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>6 or 7 Detector</title>
 <style>
-  :root { --page-bg:#ffffff; }
-  *{box-sizing:border-box}
-  html, body { height:100%; margin:0; background:var(--page-bg);
-    display:grid; place-items:center;
+  /* ---------- PAGE STYLING ---------- */
+  :root { --page-bg:#ffffff; }   /* white background */
+  *{ box-sizing:border-box }
+
+  /* Center everything in the middle of the page */
+  html, body {
+    height:100%;
+    margin:0;
+    background:var(--page-bg);
+    display:grid;
+    place-items:center;
     font-family:system-ui,-apple-system,Segoe UI,Roboto;
   }
+
+  /* Big number (6, 7, or ?) */
   #centerImg{
     max-width:90vw; max-height:90vh;
     display:block; border:none;
   }
-  /* Smaller camera preview */
+
+  /* Small camera preview box */
   #video{
     position:fixed; top:16px; right:16px;
-    width:120px; height:90px;           /* much smaller now */
+    width:120px; height:90px;
     border:none; border-radius:8px;
     background:#000; object-fit:cover;
     box-shadow:0 0 8px rgba(0,0,0,0.25);
   }
+
+  /* Start button */
   #startBtn{
     position:fixed; top:16px; left:16px;
     padding:.6rem 1rem; border:none; border-radius:8px;
@@ -31,14 +43,25 @@
 </style>
 </head>
 <body>
+  <!-- Big image that will display “6”, “7”, or “?” -->
   <img id="centerImg" alt="6–7" />
+  <!-- Live camera feed -->
   <video id="video" playsinline muted autoplay></video>
+  <!-- Button to start camera -->
   <button id="startBtn">Start</button>
 
+  <!-- 👇 Google’s AI Hand Detection Library (Mediapipe) -->
+  <!-- This library uses computer vision + machine learning to track hands in real-time. -->
+  <!-- Learn more: https://developers.google.com/mediapipe/solutions/vision/hand_landmarker -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
   <script>
+      /* ---------- IMAGES (we draw them using SVG code) ---------- */
+      // SVGs (Scalable Vector Graphics) are text-based image drawings.
+      // We encode them directly into our code so no files are needed.
+
+      // Image for "6"
       const IMG_6 = "data:image/svg+xml;base64," + btoa(`
         <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>
           <rect width='100%' height='100%' fill='#fff'/>
@@ -47,7 +70,8 @@
                 style='font-family:Arial, Helvetica, sans-serif'>6</text>
         </svg>
       `);
-      
+
+      // Image for "7"
       const IMG_7 = "data:image/svg+xml;base64," + btoa(`
         <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>
           <rect width='100%' height='100%' fill='#fff'/>
@@ -57,82 +81,117 @@
         </svg>
       `);
 
+      // Image for "?" (nothing detected)
+      const IMG_Q = "data:image/svg+xml;base64," + btoa(`
+        <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>
+          <rect width='100%' height='100%' fill='#f4f6fb'/>
+          <text x='50%' y='56%' font-size='300' font-weight='800' text-anchor='middle' fill='#9aa3b2'
+            style='font-family:Arial, Helvetica, sans-serif'>?</text>
+        </svg>`);
 
-    const IMG_Q = "data:image/svg+xml;base64," + btoa(`
-      <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>
-        <rect width='100%' height='100%' fill='#f4f6fb'/>
-        <text x='50%' y='56%' font-size='300' font-weight='800' text-anchor='middle' fill='#9aa3b2'
-          style='font-family:Arial, Helvetica, sans-serif'>?</text>
-      </svg>`);
+      /* ---------- BASIC ELEMENTS ---------- */
+      const centerImg = document.getElementById('centerImg');
+      const video = document.getElementById('video');
+      const startBtn = document.getElementById('startBtn');
+      centerImg.src = IMG_Q; // default to "?"
 
-    const centerImg = document.getElementById('centerImg');
-    const video = document.getElementById('video');
-    const startBtn = document.getElementById('startBtn');
-    centerImg.src = IMG_Q;
+      video.muted = true;        // no sound
+      video.playsInline = true;  // helps iPhones show video properly
 
-    video.muted = true;
-    video.playsInline = true;
-
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" }, audio: false
-        });
-        video.srcObject = stream;
-        await video.play();
-        startBtn.style.display = 'none';
-        return true;
-      } catch (e1) {
+      /* ---------- CAMERA SETUP ---------- */
+      // This part asks permission to use your device’s camera.
+      async function startCamera() {
         try {
-          const stream2 = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          video.srcObject = stream2;
+          // Prefer front camera (selfie)
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" }, audio: false
+          });
+          video.srcObject = stream;
           await video.play();
           startBtn.style.display = 'none';
           return true;
-        } catch (e2) {
-          alert('Camera error: ' + (e2?.message || e2));
-          return false;
+        } catch (e1) {
+          // Fallback: try any camera
+          try {
+            const stream2 = await navigator.mediaDevices.getUserMedia({
+              video: true, audio: false
+            });
+            video.srcObject = stream2;
+            await video.play();
+            startBtn.style.display = 'none';
+            return true;
+          } catch (e2) {
+            alert('Camera error: ' + (e2?.message || e2));
+            return false;
+          }
         }
       }
-    }
 
-    const hands = new Hands({
-      locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
-    });
-    hands.setOptions({
-      selfieMode: true,
-      maxNumHands: 2,
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.6,
-      modelComplexity: 1
-    });
+      /* ---------- MEDIAPIPE HAND DETECTOR ---------- */
+      // “Hands” is a pre-trained AI model from Google.
+      // It finds 21 key points on each hand (like fingertips and joints)
+      // and tells us if it’s a Left or Right hand.
+      //
+      // 👉 How it works:
+      // - It looks at the camera feed frame by frame.
+      // - It uses a neural network trained to detect hands in different lighting & angles.
+      // - It returns details like hand landmarks, handedness (Left/Right),
+      //   and a confidence score (how sure it is).
+      //
+      // More info and demos: https://developers.google.com/mediapipe/solutions/vision/hand_landmarker
 
-    function pickImage(results){
-      const labels = (results.multiHandedness || []).map(h => h.label);
-      const hasLeft = labels.includes("Left");
-      const hasRight = labels.includes("Right");
-      if (hasLeft && !hasRight) return IMG_6;
-      if (!hasLeft && hasRight) return IMG_7;
-      if (hasLeft && hasRight) return IMG_6;
-      return IMG_Q;
-    }
-
-    hands.onResults((results) => { centerImg.src = pickImage(results); });
-
-    async function init() {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        alert("Camera not supported in this browser.");
-        return;
-      }
-      const ok = await startCamera();
-      if (!ok) return;
-      const camera = new Camera(video, {
-        onFrame: async () => { await hands.send({ image: video }); }
+      const hands = new Hands({
+        locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
       });
-      camera.start();
-    }
+      hands.setOptions({
+        selfieMode: true,             // flips image for mirror view
+        maxNumHands: 2,               // track up to two hands
+        minDetectionConfidence: 0.6,  // how confident it must be
+        minTrackingConfidence: 0.6,   // how well it follows movement
+        modelComplexity: 1            // 0 = faster, 1 = more accurate
+      });
 
-    startBtn.addEventListener('click', init);
+      /* ---------- PICK WHICH IMAGE TO SHOW ---------- */
+      function pickImage(results){
+        // Mediapipe gives us a list of detected hands
+        const labels = (results.multiHandedness || []).map(h => h.label);
+        const hasLeft = labels.includes("Left");
+        const hasRight = labels.includes("Right");
+
+        // Show 6 for left hand only
+        if (hasLeft && !hasRight) return IMG_6;
+        // Show 7 for right hand only
+        if (!hasLeft && hasRight) return IMG_7;
+        // If both are visible, prefer showing 6
+        if (hasLeft && hasRight) return IMG_6;
+        // Show ? if no hands
+        return IMG_Q;
+      }
+
+      // Whenever Mediapipe finishes analyzing a video frame, it calls this:
+      hands.onResults((results) => {
+        centerImg.src = pickImage(results);
+      });
+
+      /* ---------- START EVERYTHING ---------- */
+      async function init() {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          alert("Camera not supported in this browser.");
+          return;
+        }
+        const ok = await startCamera();
+        if (!ok) return;
+
+        // Mediapipe’s helper continuously sends each frame of the video
+        // into the AI hand detection model.
+        const camera = new Camera(video, {
+          onFrame: async () => { await hands.send({ image: video }); }
+        });
+        camera.start();
+      }
+
+      // When the “Start” button is clicked, everything begins.
+      startBtn.addEventListener('click', init);
   </script>
 </body>
 </html>
