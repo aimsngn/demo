@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>666666667777777777777</title>
+<style>
+  /* White background, no containers */
+  :root { --page-bg:#ffffff; }
+  *{box-sizing:border-box}
+  html, body { height:100%; }
+  body{
+    margin:0; background:var(--page-bg);
+    display:grid; place-items:center;  /* centers the big image */
+    font-family:system-ui,-apple-system,Segoe UI,Roboto;
+  }
+  /* Center image: no border, no shadow */
+  #centerImg{
+    max-width:80vw; max-height:80vh;
+    display:block; border:none; border-radius:0; box-shadow:none;
+  }
+  /* Camera: plain video pinned top-right, no container */
+  #video{
+    position:fixed; top:12px; right:12px;
+    width:260px; height:auto; border:none; border-radius:8px;
+    background:#000;          /* shows as letterbox if aspect differs */
+    object-fit:cover;         /* fill the small preview nicely */
+  }
+</style>
+</head>
+<body>
+  <!-- Big center image -->
+  <img id="centerImg" alt="6–7" />
+
+  <!-- Plain camera preview (no wrapper) -->
+  <video id="video" playsinline></video>
+
+  <!-- MediaPipe Hands + camera utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+  <script>
+
+   
+       const IMG_6 = "stickers-fire-alphabet-number-6-six.jpg.jpg";
+       const IMG_7 = "wall-murals-fire-alphabet-number-7-seven.jpg.jpg";
+   
+    const IMG_Q = "data:image/svg+xml;base64," + btoa(`
+      <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'>
+        <rect width='100%' height='100%' fill='#f4f6fb'/>
+        <text x='50%' y='56%' font-size='300' font-weight='800' text-anchor='middle' fill='#9aa3b2'
+          style='font-family:Arial, Helvetica, sans-serif'>?</text>
+      </svg>
+    `);
+
+    const centerImg = document.getElementById('centerImg');
+    const video = document.getElementById('video');
+    centerImg.src = IMG_Q;
+
+    async function startCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width:{ideal:1280}, height:{ideal:720}, facingMode:{ideal:"user"} },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+    }
+
+    // MediaPipe Hands (no overlay drawing needed)
+    const hands = new Hands({
+      locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+    });
+    hands.setOptions({
+      selfieMode: true,
+      maxNumHands: 2,
+      minDetectionConfidence: 0.6,
+      minTrackingConfidence: 0.6,
+      modelComplexity: 1
+    });
+
+    function pickImage(results){
+      const labels = (results.multiHandedness || []).map(h => h.label); // "Left" | "Right"
+      const hasLeft = labels.includes("Left");
+      const hasRight = labels.includes("Right");
+      if (hasLeft && !hasRight) return IMG_6;   // Left → 6
+      if (!hasLeft && hasRight) return IMG_7;   // Right → 7
+      if (hasLeft && hasRight) return IMG_6;    // both: prefer Left → 6
+      return IMG_Q;                              // none
+    }
+
+    hands.onResults((results) => { centerImg.src = pickImage(results); });
+
+    async function init(){
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      await startCamera();
+      const camera = new Camera(video, {
+        onFrame: async () => { await hands.send({ image: video }); }
+      });
+      camera.start();
+    }
+    init();
+  </script>
+</body>
+</html>
